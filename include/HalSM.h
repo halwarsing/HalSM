@@ -1,7 +1,12 @@
 #ifndef HALSM_H
 #define HALSM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <HalStringFormat.h>
+#include <HalDefines.h>
 
 #define NOTHALSMNULLPOINTER ((void*)0)
 
@@ -9,7 +14,7 @@ typedef struct HalSMNull {unsigned char c;} HalSMNull;
 
 typedef struct HalSMErrorIndificator {
     HalStringFormatChar* name;
-    unsigned long long int line;
+    ui64 line;
     void* prev;
 } HalSMErrorIndificator;
 
@@ -94,16 +99,16 @@ typedef struct DictElement {
 typedef struct DictElementForEach {
     HalSMVariable* key;
     HalSMVariable* value;
-    unsigned long long int index;
+    ui64 index;
 } DictElementForEach;
 
 typedef struct Dict {
-    unsigned long long int size;
+    ui64 size;
     DictElement** elements;
 } Dict;
 
 typedef struct HalSMArray {
-    unsigned long long int size;
+    ui64 size;
     HalSMVariable** arr;
 } HalSMArray;
 
@@ -169,11 +174,11 @@ typedef struct HalSMFileSystemLibrary {
     HalSMArray*(*getListFiles)(HalSMCompiler*,HalStringFormatChar*);
     void*(*openFile)(HalStringFormatChar*,HalStringFormatChar*);
     void(*closeFile)(void*);
-    unsigned long long int(*read)(void* buf,unsigned long long int size,unsigned long long int count,void* p);
-    unsigned long long int(*write)(void* buf,unsigned long long int size,unsigned long long int count,void* p);
+    ui64(*read)(void* buf,ui64 size,ui64 count,void* p);
+    ui64(*write)(void* buf,ui64 size,ui64 count,void* p);
     void(*puts)(void*,HalStringFormatChar*);
-    void(*seek)(void*,unsigned long long int,unsigned long long int);
-    unsigned long long int(*tell)(void*);
+    void(*seek)(void*,ui64,ui64);
+    ui64(*tell)(void*);
     void(*rewind)(void*);
     void(*flush)(void*);
     int(*eof)(void*);
@@ -188,9 +193,9 @@ typedef struct HalSMStringLibrary {
 } HalSMStringLibrary;
 
 typedef struct HalSMMemoryManagmentLibrary {
-    void*(*malloc)(unsigned long long int);
-    void*(*calloc)(unsigned long long int,unsigned long long int);
-    void*(*realloc)(void*,unsigned long long int);
+    void*(*malloc)(ui64);
+    void*(*calloc)(ui64,ui64);
+    void*(*realloc)(void*,ui64);
     void(*free)(void*);
 } HalSMMemoryManagmentLibrary;
 
@@ -200,10 +205,37 @@ typedef struct HalSMSystemLibrary {
 
 
 
+//HalSMMemory
+
+#define HSMEM_ERR_ADDR 0xFFFFFFFFFFFFFFFFULL
+
+#pragma pack(push, 1)
+typedef struct HalSMMemoryCell HalSMMemoryCell;
+
+typedef struct HalSMMemoryCell {
+    void* addr;
+    ui8 isFree;
+    HalSMMemoryCell* nextFree;
+    HalSMMemoryCell* prevFree;
+} HalSMMemoryCell;
+#pragma pack(pop)
+
+typedef struct HalSMMemory {
+    HalSMMemoryManagmentLibrary* mml;
+    HalSMMemoryCell* table;
+    ui64 size;
+    ui64 free;
+    HalSMMemoryCell* firstFree;
+} HalSMMemory;
+
+//HalSM
+
+
+
 typedef struct HalSMInteger {
     unsigned char negative;
     unsigned char* value;
-    unsigned long long size;
+    ui64 size;
 } HalSMInteger;
 
 typedef struct HalSMDouble {
@@ -215,29 +247,28 @@ typedef struct HalSMDouble {
 typedef struct HalSMCalculateVars {
     HalStringFormatChar* version;
     HalStringFormatChar*(*addStr)(HalSMCompiler*,HalSMVariable*,HalSMVariable*);
-    HalSMInteger*(*addInt)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalSMDouble*(*addDouble)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
+    HalSMInteger*(*addInt)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalSMDouble*(*addDouble)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
     HalStringFormatChar*(*subStr)(HalSMCompiler*,HalSMVariable*,HalSMVariable*);
-    HalSMInteger*(*subInt)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalSMDouble*(*subDouble)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalStringFormatChar*(*mulStr)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalSMInteger*(*mulInt)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalSMDouble*(*mulDouble)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
+    HalSMInteger*(*subInt)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalSMDouble*(*subDouble)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalStringFormatChar*(*mulStr)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalSMInteger*(*mulInt)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalSMDouble*(*mulDouble)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
     HalStringFormatChar*(*divStr)(HalSMCompiler*,HalSMVariable*,HalSMVariable*);
-    HalSMInteger*(*divInt)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
-    HalSMDouble*(*divDouble)(HalSMMemoryManagmentLibrary*,HalSMVariable*,HalSMVariable*);
+    HalSMInteger*(*divInt)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
+    HalSMDouble*(*divDouble)(HalSMMemory*,HalSMVariable*,HalSMVariable*);
 } HalSMCalculateVars;
 
 typedef struct HalSMCompiler {
     HalStringFormatChar* versionName;
-    unsigned long long int version;
+    ui64 version;
     HalStringFormatChar* path;
     void* addition_data;
     Dict* functions;
     Dict* sys_modules;
     HalSMCalculateVars calcVars;
-    HalSMArray* numbers;
-    unsigned long long int line;
+    ui64 line;
     Dict* sys_variables;
     Dict* variables;
     Dict* modules;
@@ -249,17 +280,20 @@ typedef struct HalSMCompiler {
     HalStringFormatChar*(*inputf)(HalStringFormatChar*);
     HalSMVariable*(*getVariable)(HalStringFormatChar*);
     HalSMStringLibrary* stringlibrary;
-    HalSMMemoryManagmentLibrary* memorymanagmentlibrary;
     HalSMSystemLibrary* systemlibrary;
     HalSMFileSystemLibrary* filesystemlibrary;
     Dict* sys_custom_variables;
     Dict* GOTOSectors;
-    unsigned long long int indexl;
+    ui64 indexl;
     unsigned char isRun;
-    unsigned long long int countLocalFunctions;
+    unsigned char isClose;
+    ui64 countLocalFunctions;
     HalSMVariable*(*HalSMLoadModule)(HalSMCompiler*,HalStringFormatChar*);
     HalSMErrorIndificator* ind;
     HalSMErrorIndificator* curInd;
+
+    //0.1.7 Clear memory every day!
+    HalSMMemory* memory;
 } HalSMCompiler;
 
 typedef HalSMVariable*(*HalSMFunctionCTypeDef)(HalSMCompiler*,HalSMArray*,Dict*);
@@ -309,7 +343,7 @@ typedef struct HalSMModule {
 typedef struct HalSMLocalFunction {
     HalSMCompiler* hsmc;
     HalStringFormatChar* name;
-    unsigned long long int id;
+    ui64 id;
     HalSMArray* args;
     HalSMArray* func;
     Dict* vars;
@@ -389,65 +423,81 @@ typedef struct HalSMSetVar {
 
 typedef struct HalSMReturn {
     HalStringFormatChar* value;
-    unsigned long long int idLocalFunction;
+    ui64 idLocalFunction;
 } HalSMReturn;
+
+extern HalSMInteger HalSMIntegerZero;
+extern HalSMInteger HalSMIntegerOne;
+extern HalSMInteger HalSMIntegerTwo;
+extern HalSMInteger HalSMIntegerThree;
+extern HalSMInteger HalSMIntegerTen;
+extern HalSMInteger HalSMIntegerThousand;
+extern HalSMDouble HalSMDoubleOne;
+extern HalSMDouble HalSMDoubleZero;
+extern HalSMDouble HalSMDoubleTwo;
+extern HalSMDouble HalSMDoubleThree;
+extern HalSMDouble HalSMDoubleTen;
 
 HalSMNull* HalSMNull_init(HalSMCompiler* hsmc);
 HalSMError* HalSMError_init(HalSMCompiler* hsmc,HalSMErrorIndificator* ind,HalStringFormatChar* error);
-HalSMErrorIndificator* HalSMErrorIndificator_init(HalSMCompiler* hsmc,HalStringFormatChar* name,unsigned long long int line,void* prev);
+HalSMErrorIndificator* HalSMErrorIndificator_init(HalSMCompiler* hsmc,HalStringFormatChar* name,ui64 line,void* prev);
 
-HalSMArray* HalSMArray_init(HalSMMemoryManagmentLibrary* hsmmml);
-HalSMArray* HalSMArray_init_with_elements(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable** arr,unsigned long long int size);
-HalSMArray* HalSMArray_split_str(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str,HalStringFormatChar* spl);
-void HalSMArray_add(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,HalSMVariable* value);
-void HalSMArray_set(HalSMArray* harr,HalSMVariable* value,unsigned long long int index);
-void HalSMArray_remove(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,unsigned long long int index);
-void HalSMArray_appendArray(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,HalSMArray* t);
-void HalSMArray_insert(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,HalSMVariable* value,unsigned long long int index);
-HalSMVariable* HalSMArray_get(HalSMArray* harr,unsigned long long int index);
-HalSMArray* HalSMArray_reverse(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr);
-HalStringFormatChar* HalSMArray_join_str(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,HalStringFormatChar* join);
+HalSMArray* HalSMArray_init(HalSMMemory* memory);
+HalSMArray* HalSMArray_init_with_elements(HalSMMemory* memory,HalSMVariable** arr,ui64 size);
+HalSMArray* HalSMArray_split_str(HalSMMemory* memory,HalStringFormatChar* str,HalStringFormatChar* spl);
+void HalSMArray_add(HalSMMemory* memory,HalSMArray* harr,HalSMVariable* value);
+void HalSMArray_set(HalSMArray* harr,HalSMVariable* value,ui64 index);
+void HalSMArray_remove(HalSMMemory* memory,HalSMArray* harr,ui64 index);
+void HalSMArray_appendArray(HalSMMemory* memory,HalSMArray* harr,HalSMArray* t);
+void HalSMArray_insert(HalSMMemory* memory,HalSMArray* harr,HalSMVariable* value,ui64 index);
+HalSMVariable* HalSMArray_get(HalSMArray* harr,ui64 index);
+HalSMArray* HalSMArray_reverse(HalSMMemory* memory,HalSMArray* harr);
+HalStringFormatChar* HalSMArray_join_str(HalSMMemory* memory,HalSMArray* harr,HalStringFormatChar* join);
 HalStringFormatChar* HalSMArray_to_print(HalSMCompiler* hsmc,HalSMArray* harr);
-HalStringFormatChar* HalSMArray_chars_to_str(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr);
-HalSMArray* HalSMArray_slice(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr,unsigned long long int s,unsigned long long int e);
+HalStringFormatChar* HalSMArray_chars_to_str(HalSMMemory* memory,HalSMArray* harr);
+HalSMArray* HalSMArray_slice(HalSMMemory* memory,HalSMArray* harr,ui64 s,ui64 e);
 unsigned char HalSMArray_compare(HalSMCompiler* hsmc,HalSMArray* harr,HalSMArray* barr);
-HalSMArray* HalSMArray_from_str(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str,unsigned long long int size);
-HalSMArray* HalSMArray_copy(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr);
-void HalSMArray_free(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr);
+HalSMArray* HalSMArray_from_str(HalSMMemory* memory,HalStringFormatChar* str,ui64 size);
+HalSMArray* HalSMArray_copy(HalSMMemory* memory,HalSMArray* harr);
+void HalSMArray_free(HalSMMemory* memory,HalSMArray* harr);
 long long int HalSMArray_find(HalSMCompiler* hsmc,HalSMArray* harr,HalSMVariable* value);
 long long int HalSMArray_index(HalSMCompiler* hsmc,HalSMArray* harr,HalSMVariable* value);
 long long int HalSMArray_right_index(HalSMCompiler* hsmc,HalSMArray* harr,HalSMVariable* value);
-void HalSMArray_clear(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* harr);
+void HalSMArray_clear(HalSMMemory* memory,HalSMArray* harr);
 
 HalSMCalculateVars HalSMCalculateVars_init();
 HalStringFormatChar* HalSMCalculateVars_addStr(HalSMCompiler* hsmc,HalSMVariable* v0,HalSMVariable* v1);
 HalStringFormatChar* HalSMCalculateVars_subStr(HalSMCompiler* hsmc,HalSMVariable* v0,HalSMVariable* v1);
-HalStringFormatChar* HalSMCalculateVars_mulStr(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
+HalStringFormatChar* HalSMCalculateVars_mulStr(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
 HalStringFormatChar* HalSMCalculateVars_divStr(HalSMCompiler* hsmc,HalSMVariable* v0,HalSMVariable* v1);
-HalSMInteger* HalSMCalculateVars_addInt(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMInteger* HalSMCalculateVars_subInt(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMInteger* HalSMCalculateVars_mulInt(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMInteger* HalSMCalculateVars_divInt(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMDouble* HalSMCalculateVars_addDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMDouble* HalSMCalculateVars_subDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMDouble* HalSMCalculateVars_mulDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
-HalSMDouble* HalSMCalculateVars_divDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* v0,HalSMVariable* v1);
+HalSMInteger* HalSMCalculateVars_addInt(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMInteger* HalSMCalculateVars_subInt(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMInteger* HalSMCalculateVars_mulInt(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMInteger* HalSMCalculateVars_divInt(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMDouble* HalSMCalculateVars_addDouble(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMDouble* HalSMCalculateVars_subDouble(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMDouble* HalSMCalculateVars_mulDouble(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
+HalSMDouble* HalSMCalculateVars_divDouble(HalSMMemory* memory,HalSMVariable* v0,HalSMVariable* v1);
 
 HalSMVariable* HalSMCompiler_input(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_reversed(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_range(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_print(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMArray* HalSMCompiler_get_print_text(HalSMCompiler* hsmc,HalSMArray* args,unsigned char isToPrint);
-HalSMCompiler* HalSMCompiler_init(HalStringFormatChar* path,void(*printf)(HalStringFormatChar*),void(*printErrorf)(HalStringFormatChar*),HalStringFormatChar*(*inputf)(HalStringFormatChar*),HalSMVariable*(*getVariable)(HalStringFormatChar*),HalSMStringLibrary* stringlibrary,HalSMMemoryManagmentLibrary* memorymanagmentlibrary,HalSMSystemLibrary* systemlibrary,HalSMFileSystemLibrary* filesystemlibrary,HalSMVariable*(*HalSMLoadModule)(HalSMCompiler*,HalStringFormatChar*));
+HalSMCompiler* HalSMCompiler_init(HalStringFormatChar* path,void(*printf)(HalStringFormatChar*),void(*printErrorf)(HalStringFormatChar*),HalStringFormatChar*(*inputf)(HalStringFormatChar*),HalSMVariable*(*getVariable)(HalStringFormatChar*),HalSMStringLibrary* stringlibrary,HalSMMemory* memory,HalSMSystemLibrary* systemlibrary,HalSMFileSystemLibrary* filesystemlibrary,HalSMVariable*(*HalSMLoadModule)(HalSMCompiler*,HalStringFormatChar*));
 HalSMArray* HalSMCompiler_getLines(HalSMCompiler* hsmc,HalStringFormatChar* text);
-HalStringFormatChar* HalSMCompiler_removeSpaces(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* text);
+HalStringFormatChar* HalSMCompiler_removeSpaces(HalSMMemory* memory,HalStringFormatChar* text);
+HalStringFormatChar* HalSMCompiler_removeStartSpaces(HalSMMemory* memory,HalStringFormatChar* text);
+HalStringFormatChar* HalSMCompiler_removeEndSpaces(HalSMMemory* memory,HalStringFormatChar* text);
 void HalSMCompiler_ThrowError(HalSMCompiler* hsmc,HalSMError* err);
 HalSMVariable* HalSMCompiler_getNameFunction(HalSMCompiler* hsmc,HalStringFormatChar* l);
 HalSMVariable* HalSMCompiler_isSetVar(HalSMCompiler* hsmc,HalStringFormatChar* l,Dict* vars);
-unsigned long long int HalSMCompiler_getTabs(HalSMCompiler* hsmc,HalStringFormatChar* l);
+ui64 HalSMCompiler_getTabs(HalSMCompiler* hsmc,HalStringFormatChar* l);
 unsigned char HalSMCompiler_isNull(HalStringFormatChar* text);
 HalSMVariable* HalSMCompiler_compileList(HalSMCompiler* hsmc,unsigned char isConsole,HalSMVariable* module,HalSMArray* allLines);
 HalSMVariable* HalSMCompiler_compile(HalSMCompiler* hsmc,HalStringFormatChar* text,unsigned char isConsole,HalSMVariable* module);
+void HalSMCompiler_free(HalSMCompiler* hsmc);
+void HalSMCompiler_exitApp(HalSMCompiler* hsmc);
 
 unsigned char HalSMCompiler_isGet(HalSMCompiler* hsmc,HalStringFormatChar* l,HalSMVariable* outvar,unsigned char isNewVar,Dict* vars);
 HalSMVariable* HalSMCompiler_isGetU(HalSMCompiler* hsmc,HalStringFormatChar* l,unsigned char* isOut,unsigned char isNewVar,Dict* vars);
@@ -461,7 +511,7 @@ void HalSMCompiler_getArgsSetVar(HalSMCompiler* hsmc,HalSMArray* value,HalSMVari
 void HalSMCompiler_getArgsFunction(HalSMCompiler* hsmc,HalSMArray* value,HalSMArray* out,Dict* vars);
 Dict* HalSMCompiler_getArgsDict(HalSMCompiler* hsmc,HalStringFormatChar* l,Dict* vars);
 
-HalStringFormatChar* HalSMCompiler_getPath(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* a,HalStringFormatChar* b);
+HalStringFormatChar* HalSMCompiler_getPath(HalSMMemory* memory,HalStringFormatChar* a,HalStringFormatChar* b);
 HalSMVariable* HalSMCompiler_isExistsPath(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_isExistsDir(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_isExistsFile(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
@@ -544,187 +594,190 @@ HalSMVariable* HalSMCompiler_array(HalSMCompiler* hsmc,HalSMArray* args,Dict* va
 HalSMVariable* HalSMCompiler_dir(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 HalSMVariable* HalSMCompiler_dict(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 
-unsigned char HalSMIsInt(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c);
-unsigned char HalSMIsDouble(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c);
-unsigned char HalSMIsHex(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c);
-unsigned char HalSMIsBin(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c);
+unsigned char HalSMIsInt(HalSMMemory* memory,HalStringFormatChar* c);
+unsigned char HalSMIsDouble(HalSMMemory* memory,HalStringFormatChar* c);
+unsigned char HalSMIsHex(HalSMMemory* memory,HalStringFormatChar* c);
+unsigned char HalSMIsBin(HalSMMemory* memory,HalStringFormatChar* c);
 
-HalSMDoubleGet* HalSMDoubleGet_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* st);
+HalSMDoubleGet* HalSMDoubleGet_init(HalSMMemory* memory,HalStringFormatChar* st);
 
-HalSMCModule* HalSMCModule_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name);
+HalSMCModule* HalSMCModule_init(HalSMMemory* memory,HalStringFormatChar* name);
 HalSMCModule* HalSMCModule_load(HalSMCompiler* hsmc,HalSMCModule_entry* entry);
 
-HalSMModule* HalSMModule_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name,HalSMCompiler* hsmcmodule);
+HalSMModule* HalSMModule_init(HalSMMemory* memory,HalStringFormatChar* name,HalSMCompiler* hsmcmodule);
 
-HalSMRunFunc* HalSMRunFunc_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMLocalFunction* func,HalSMArray* args);
+HalSMRunFunc* HalSMRunFunc_init(HalSMMemory* memory,HalSMLocalFunction* func,HalSMArray* args);
 
-HalSMRunFuncC* HalSMRunFuncC_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMFunctionC* func,HalSMArray* args);
+HalSMRunFuncC* HalSMRunFuncC_init(HalSMMemory* memory,HalSMFunctionC* func,HalSMArray* args);
 
-HalSMClassC* HalSMClassC_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name);
+HalSMClassC* HalSMClassC_init(HalSMMemory* memory,HalStringFormatChar* name);
 HalSMRunClassC* HalSMClassC_run(HalSMCompiler* hsmc,HalSMClassC* classc,HalSMArray* args);
 
-HalSMClass* HalSMClass_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name,Dict* vrs);
+HalSMClass* HalSMClass_init(HalSMMemory* memory,HalStringFormatChar* name,Dict* vrs);
 HalSMRunClass* HalSMClass_run(HalSMClass* clas,HalSMCompiler* hsmc,HalSMArray* args);
 
-HalSMRunClass* HalSMRunClass_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name,Dict* vrs,Dict* funcs);
+HalSMRunClass* HalSMRunClass_init(HalSMMemory* memory,HalStringFormatChar* name,Dict* vrs,Dict* funcs);
 HalSMRunClass* HalSMRunClass__init__(HalSMRunClass* runclass,HalSMCompiler* hsmc,HalSMArray* args);
 
 HalSMFunctionC* HalSMFunctionC_init(HalSMCompiler* hsmc,HalSMFunctionCTypeDef func);
 HalSMFunctionC* HalSMFunctionC_initWithData(void* data,HalSMCompiler* hsmc,HalSMFunctionCTypeDefWithData func);
 HalSMVariable* HalSMFunctionC_run(HalSMFunctionC* hfc,HalSMArray* args,Dict* vars);
 
-HalSMRunClassC* HalSMRunClassC_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name,Dict* vrs,Dict* funcs);
+HalSMRunClassC* HalSMRunClassC_init(HalSMMemory* memory,HalStringFormatChar* name,Dict* vrs,Dict* funcs);
 HalSMRunClassC* HalSMRunClassC__init__(HalSMCompiler* hsmc,HalSMRunClassC* runclassc,HalSMArray* args);
 
-HalSMVar* HalSMVar_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name);
+HalSMVar* HalSMVar_init(HalSMMemory* memory,HalStringFormatChar* name);
 
-HalSMSetArg* HalSMSetArg_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* name);
-HalSMSetArg* HalSMSetArg_initWithValue(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* name,HalSMVariable* value);
+HalSMSetArg* HalSMSetArg_init(HalSMMemory* memory,HalSMVariable* name);
+HalSMSetArg* HalSMSetArg_initWithValue(HalSMMemory* memory,HalSMVariable* name,HalSMVariable* value);
 
-HalSMReturn* HalSMReturn_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* val,unsigned long long int idLocalFunction);
+HalSMReturn* HalSMReturn_init(HalSMMemory* memory,HalStringFormatChar* val,ui64 idLocalFunction);
 
-Dict* DictInit(HalSMMemoryManagmentLibrary* hsmmml);
-Dict* DictInitWithElements(HalSMMemoryManagmentLibrary* hsmmml,DictElement* elements[],unsigned long long int size);
-DictElement* DictElementInit(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* key,HalSMVariable* value);
+Dict* DictInit(HalSMMemory* memory);
+Dict* DictInitWithElements(HalSMMemory* memory,DictElement* elements[],ui64 size);
+DictElement* DictElementInit(HalSMMemory* memory,HalSMVariable* key,HalSMVariable* value);
 DictElement* DictElementFindByKey(HalSMCompiler* hsmc,Dict* dict,HalSMVariable* key);
 DictElement* DictElementFindByValue(HalSMCompiler* hsmc,Dict* dict,HalSMVariable* value);
-DictElement* DictElementFindByIndex(Dict* dict,unsigned long long int index);
+DictElement* DictElementFindByIndex(Dict* dict,ui64 index);
 long long int DictElementIndexByKey(HalSMCompiler* hsmc,Dict* dict,HalSMVariable* key);
 long long int DictElementIndexByValue(HalSMCompiler* hsmc,Dict* dict,HalSMVariable* value);
-DictElement* DictElementCopy(HalSMMemoryManagmentLibrary* hsmmml,DictElement* elem);
+DictElement* DictElementCopy(HalSMMemory* memory,DictElement* elem);
+void DictElementFree(HalSMMemory* memory,DictElement* elem);
 void PutDictElementToDict(HalSMCompiler* hsmc,Dict* dict,DictElement* elem);
-Dict* DictCopy(HalSMMemoryManagmentLibrary* hsmmml,Dict* dict);
+Dict* DictCopy(HalSMMemory* memory,Dict* dict);
 unsigned char DictCompare(HalSMCompiler* hsmc,Dict* a,Dict* b);
-void DictFree(HalSMMemoryManagmentLibrary* hsmmml,Dict* dict);
-void DictClear(HalSMMemoryManagmentLibrary* hsmmml,Dict* dict);
+void DictFree(HalSMMemory* memory,Dict* dict);
+void DictFreeE(HalSMMemory* memory,Dict* dict);
+void DictClear(HalSMMemory* memory,Dict* dict);
 HalStringFormatChar* Dict_to_print(HalSMCompiler* hsmc,Dict* harr);
-void DictAppendDict(HalSMMemoryManagmentLibrary* hsmmml,Dict* a,Dict* b);
-void DictRemove(HalSMMemoryManagmentLibrary* hsmmml,Dict* a,unsigned long long int index);
+void DictAppendDict(HalSMMemory* memory,Dict* a,Dict* b);
+void DictRemove(HalSMMemory* memory,Dict* a,ui64 index);
 
-HalSMVariable* HalSMVariable_init(HalSMMemoryManagmentLibrary* hsmmml,void* value,HalSMVariableType type);
+HalSMVariable* HalSMVariable_init(HalSMMemory* memory,void* value,HalSMVariableType type);
 void HalSMVariable_AsVar(void* var,HalSMVariable* arg);
-HalSMVariable* HalSMVariable_init_str(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str);
-HalSMVariable* HalSMVariable_init_int(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* n);
-HalSMVariable* HalSMVariable_init_double(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* d);
-HalSMVariable* HalSMVariable_init_bool(HalSMMemoryManagmentLibrary* hsmmml,unsigned char b);
-HalSMVariable* HalSMVariable_init_unsigned_int(HalSMMemoryManagmentLibrary* hsmmml,unsigned long long int n);
-HalSMVariable* HalSMVariable_init_char(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar c);
+HalSMVariable* HalSMVariable_init_str(HalSMMemory* memory,HalStringFormatChar* str);
+HalSMVariable* HalSMVariable_init_int(HalSMMemory* memory,HalSMInteger* n);
+HalSMVariable* HalSMVariable_init_double(HalSMMemory* memory,HalSMDouble* d);
+HalSMVariable* HalSMVariable_init_bool(HalSMMemory* memory,unsigned char b);
+HalSMVariable* HalSMVariable_init_unsigned_int(HalSMMemory* memory,ui64 n);
+HalSMVariable* HalSMVariable_init_char(HalSMMemory* memory,HalStringFormatChar c);
 HalStringFormatChar* HalSMVariable_to_str(HalSMCompiler* hsmc,HalSMVariable* a,unsigned char isToPrint);
 unsigned char HalSMVariable_Compare(HalSMCompiler* hsmc,HalSMVariable* v0,HalSMVariable* v1);
-void HalSMVariable_free(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariable* arg);
-HalSMVariableCustom* HalSMVariableCustom_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariableTypeCustom* type,void* value,Dict* vars,Dict* funcs);
-HalSMVariableTypeCustom* HalSMVariableTypeCustom_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMVariableTypeCustom type);
+void HalSMVariable_free(HalSMMemory* memory,HalSMVariable* arg);
+HalSMVariableCustom* HalSMVariableCustom_init(HalSMMemory* memory,HalSMVariableTypeCustom* type,void* value,Dict* vars,Dict* funcs);
+HalSMVariableTypeCustom* HalSMVariableTypeCustom_init(HalSMMemory* memory,HalSMVariableTypeCustom type);
 
-HalSMSetVar* HalSMSetVar_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* name,HalStringFormatChar* value,HalSMVariable* pointer);
+HalSMSetVar* HalSMSetVar_init(HalSMMemory* memory,HalStringFormatChar* name,HalStringFormatChar* value,HalSMVariable* pointer);
 
 HalSMVariable* ParseHalSMVariableInt(HalSMCompiler* hsmc,HalStringFormatChar* c);
 HalSMVariable* ParseHalSMVariableDouble(HalSMCompiler* hsmc,HalStringFormatChar* c);
 
-long long int StringIndexOf(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f);
-long long int StringLastIndexOf(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f);
-HalStringFormatChar* SubString(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,int start,int end);
-HalStringFormatChar* SubStringHalSMInteger(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalSMInteger* start,HalSMInteger* end);
-HalStringFormatChar* ConcatenateStrings(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f);
-HalStringFormatChar* StringReplace(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f,HalStringFormatChar* r);
-unsigned char StringEndsWith(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f);
-unsigned char StringStartsWith(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* c,HalStringFormatChar* f);
-void AdditionStrings(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar** c,HalStringFormatChar* f,unsigned long long int sizec,unsigned long long int sizef);
+long long int StringIndexOf(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f);
+long long int StringLastIndexOf(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f);
+HalStringFormatChar* SubString(HalSMMemory* memory,HalStringFormatChar* c,int start,int end);
+HalStringFormatChar* SubStringHalSMInteger(HalSMMemory* memory,HalStringFormatChar* c,HalSMInteger* start,HalSMInteger* end);
+HalStringFormatChar* ConcatenateStrings(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f);
+HalStringFormatChar* StringReplace(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f,HalStringFormatChar* r);
+unsigned char StringEndsWith(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f);
+unsigned char StringStartsWith(HalSMMemory* memory,HalStringFormatChar* c,HalStringFormatChar* f);
+void AdditionStrings(HalSMMemory* memory,HalStringFormatChar** c,HalStringFormatChar* f,ui64 sizec,ui64 sizef);
 
 
 
-HalSMInteger* HalSMInteger_init(HalSMMemoryManagmentLibrary* hsmmml,unsigned char negative,unsigned char* value,unsigned long long size);
-HalSMInteger* HalSMInteger_copy(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
-HalSMInteger* HalSMInteger_FromUnsignedInteger(HalSMMemoryManagmentLibrary* hsmmml,unsigned int value);
-HalSMInteger* HalSMInteger_FromSignedInteger(HalSMMemoryManagmentLibrary* hsmmml,signed int value);
-HalSMInteger* HalSMInteger_FromUnsignedLongLongInteger(HalSMMemoryManagmentLibrary* hsmmml,unsigned long long int value);
+HalSMInteger* HalSMInteger_init(HalSMMemory* memory,unsigned char negative,unsigned char* value,ui64 size);
+HalSMInteger* HalSMInteger_copy(HalSMMemory* memory,HalSMInteger* a);
+HalSMInteger* HalSMInteger_FromUnsignedInteger(HalSMMemory* memory,unsigned int value);
+HalSMInteger* HalSMInteger_FromSignedInteger(HalSMMemory* memory,signed int value);
+HalSMInteger* HalSMInteger_FromUnsignedLongLongInteger(HalSMMemory* memory,ui64 value);
 unsigned int HalSMInteger_ToUnsignedInteger(HalSMInteger* value);
-unsigned long long int HalSMInteger_ToUnsignedLongLongInteger(HalSMInteger* value);
-HalSMInteger* HalSMInteger_parse(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str);
-HalSMInteger* HalSMInteger_parseHex(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str,unsigned char isZeroX);
-HalSMInteger* HalSMInteger_parseBin(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str);
-void HalSMInteger_AddSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_Add(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_SubSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_Sub(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_MulSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_Mul(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_DivSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b,HalSMInteger* remainder);
-HalSMInteger* HalSMInteger_Div(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b,HalSMInteger* remainder);
+ui64 HalSMInteger_ToUnsignedLongLongInteger(HalSMInteger* value);
+HalSMInteger* HalSMInteger_parse(HalSMMemory* memory,HalStringFormatChar* str);
+HalSMInteger* HalSMInteger_parseHex(HalSMMemory* memory,HalStringFormatChar* str,unsigned char isZeroX);
+HalSMInteger* HalSMInteger_parseBin(HalSMMemory* memory,HalStringFormatChar* str);
+void HalSMInteger_AddSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_Add(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_SubSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_Sub(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_MulSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_Mul(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_DivSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b,HalSMInteger* remainder);
+HalSMInteger* HalSMInteger_Div(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b,HalSMInteger* remainder);
 HalSMInteger* HalSMInteger_negate(HalSMInteger* a);
 HalSMInteger* HalSMInteger_absolute(HalSMInteger* a);
 unsigned char HalSMInteger_isMore(HalSMInteger* a,HalSMInteger* b);
 unsigned char HalSMInteger_isLess(HalSMInteger* a,HalSMInteger* b);
 unsigned char HalSMInteger_isEqual(HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_getValueWithoutNull(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
-char* HalSMInteger_Byte2Bits(HalSMMemoryManagmentLibrary* hsmmml,unsigned char byte);
-HalStringFormatChar* HalSMInteger_Bytes2Bits(HalSMMemoryManagmentLibrary* hsmmml,unsigned char* bytes,unsigned long long size);
-HalStringFormatChar* HalSMInteger_toString(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,unsigned char isHex);
+HalSMInteger* HalSMInteger_getValueWithoutNull(HalSMMemory* memory,HalSMInteger* a);
+char* HalSMInteger_Byte2Bits(HalSMMemory* memory,unsigned char byte);
+HalStringFormatChar* HalSMInteger_Bytes2Bits(HalSMMemory* memory,unsigned char* bytes,ui64 size);
+HalStringFormatChar* HalSMInteger_toString(HalSMMemory* memory,HalSMInteger* a,unsigned char isHex);
 HalStringFormatChar* HalSMInteger_Byte2Hex(HalStringFormatChar* out,unsigned char x);
-HalStringFormatChar* HalSMInteger_toStringBytes(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
+HalStringFormatChar* HalSMInteger_toStringBytes(HalSMMemory* memory,HalSMInteger* a);
 unsigned char HalSMInteger_getBit(HalSMInteger* a,long long int byte,unsigned char bit);
-void HalSMInteger_setBitSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,long long int byte,unsigned char bit,unsigned char value);
-HalSMInteger* HalSMInteger_setBit(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,long long int byte,unsigned char bit,unsigned char value);
-void HalSMInteger_shiftRightSelf(HalSMInteger* a,long long int bit);
-void HalSMInteger_shiftLeftSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,long long int bit);
-HalSMInteger* HalSMInteger_shiftRight(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,long long int bit);
-HalSMInteger* HalSMInteger_shiftLeft(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,long long int bit);
-HalSMInteger* HalSMInteger_clear(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
-void HalSMInteger_PowSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_Pow(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_Free(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
+void HalSMInteger_setBitSelf(HalSMMemory* memory,HalSMInteger* a,long long int byte,unsigned char bit,unsigned char value);
+HalSMInteger* HalSMInteger_setBit(HalSMMemory* memory,HalSMInteger* a,long long int byte,unsigned char bit,unsigned char value);
+void HalSMInteger_shiftRightSelf(HalSMMemory* memory,HalSMInteger* a,long long int bit);
+void HalSMInteger_shiftLeftSelf(HalSMMemory* memory,HalSMInteger* a,long long int bit);
+HalSMInteger* HalSMInteger_shiftRight(HalSMMemory* memory,HalSMInteger* a,long long int bit);
+HalSMInteger* HalSMInteger_shiftLeft(HalSMMemory* memory,HalSMInteger* a,long long int bit);
+HalSMInteger* HalSMInteger_clear(HalSMMemory* memory,HalSMInteger* a);
+void HalSMInteger_PowSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_Pow(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_Free(HalSMMemory* memory,HalSMInteger* a);
 unsigned char HalSMInteger_ByteCTZ(unsigned char byte);
 long long int HalSMInteger_ctz(HalSMInteger* a);
-void HalSMInteger_BitORSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_BitOR(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_BitXORSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_BitXOR(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_BitANDSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-HalSMInteger* HalSMInteger_BitAND(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a,HalSMInteger* b);
-void HalSMInteger_BitNOTSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
-HalSMInteger* HalSMInteger_BitNOT(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* a);
-HalSMInteger* HalSMInteger_FromHalSMDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-HalSMInteger* HalSMInteger_FloorHalSMDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-HalSMInteger* HalSMInteger_CeilHalSMDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
+void HalSMInteger_BitORSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_BitOR(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_BitXORSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_BitXOR(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_BitANDSelf(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+HalSMInteger* HalSMInteger_BitAND(HalSMMemory* memory,HalSMInteger* a,HalSMInteger* b);
+void HalSMInteger_BitNOTSelf(HalSMMemory* memory,HalSMInteger* a);
+HalSMInteger* HalSMInteger_BitNOT(HalSMMemory* memory,HalSMInteger* a);
+HalSMInteger* HalSMInteger_FromHalSMDouble(HalSMMemory* memory,HalSMDouble* a);
+HalSMInteger* HalSMInteger_FloorHalSMDouble(HalSMMemory* memory,HalSMDouble* a);
+HalSMInteger* HalSMInteger_CeilHalSMDouble(HalSMMemory* memory,HalSMDouble* a);
+signed char HalSMInteger_compare(HalSMInteger* a,HalSMInteger* b);
 
-HalSMDouble* HalSMDouble_init(HalSMMemoryManagmentLibrary* hsmmml,unsigned char negative,HalSMInteger* a,HalSMInteger* b);
-HalSMDouble* HalSMDouble_copy(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-HalSMDouble* HalSMDouble_FromUnsignedInteger(HalSMMemoryManagmentLibrary* hsmmml,unsigned int value);
-HalSMDouble* HalSMDouble_FromSignedInteger(HalSMMemoryManagmentLibrary* hsmmml,signed int value);
-HalSMDouble* HalSMDouble_FromFloat(HalSMMemoryManagmentLibrary* hsmmml,float value);
-HalSMDouble* HalSMDouble_FromDouble(HalSMMemoryManagmentLibrary* hsmmml,double value);
-HalSMDouble* HalSMDouble_FromHalSMInteger(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* value);
-HalSMDouble* HalSMDouble_parse(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* str);
-unsigned char HalSMDouble_isMore(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-unsigned char HalSMDouble_isLess(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
+HalSMDouble* HalSMDouble_init(HalSMMemory* memory,unsigned char negative,HalSMInteger* a,HalSMInteger* b);
+HalSMDouble* HalSMDouble_copy(HalSMMemory* memory,HalSMDouble* a);
+HalSMDouble* HalSMDouble_FromUnsignedInteger(HalSMMemory* memory,unsigned int value);
+HalSMDouble* HalSMDouble_FromSignedInteger(HalSMMemory* memory,signed int value);
+HalSMDouble* HalSMDouble_FromFloat(HalSMMemory* memory,float value);
+HalSMDouble* HalSMDouble_FromDouble(HalSMMemory* memory,double value);
+HalSMDouble* HalSMDouble_FromHalSMInteger(HalSMMemory* memory,HalSMInteger* value);
+HalSMDouble* HalSMDouble_parse(HalSMMemory* memory,HalStringFormatChar* str);
+unsigned char HalSMDouble_isMore(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+unsigned char HalSMDouble_isLess(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
 unsigned char HalSMDouble_isEqual(HalSMDouble* a,HalSMDouble* b);
-void HalSMDouble_AddSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-HalSMDouble* HalSMDouble_Add(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-void HalSMDouble_SubSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-HalSMDouble* HalSMDouble_Sub(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-void HalSMDouble_MulSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-HalSMDouble* HalSMDouble_Mul(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-void HalSMDouble_DivSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-HalSMDouble* HalSMDouble_Div(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMDouble* b);
-HalStringFormatChar* HalSMDouble_toString(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,unsigned char isHex);
-HalStringFormatChar* HalSMDouble_toStringRound(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,unsigned long long int round);
-double HalSMDouble_ToDouble(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-float HalSMDouble_ToFloat(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-void HalSMDouble_SquareRootSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* q,unsigned long long int crop);
-HalSMDouble* HalSMDouble_SquareRoot(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* q,unsigned long long int crop);
-void HalSMDouble_AbsSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-HalSMDouble* HalSMDouble_Abs(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-void HalSMDouble_Free(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-void HalSMDouble_PowSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* b);
-HalSMDouble* HalSMDouble_Pow(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* b);
-void HalSMDouble_RoundSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* b);
-HalSMDouble* HalSMDouble_Round(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,HalSMInteger* b);
-void HalSMDouble_CropSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a,unsigned long long int crop);
-HalSMInteger* HalSMDouble_gcdSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* u,HalSMInteger* v);
-HalSMInteger* HalSMDouble_gcd(HalSMMemoryManagmentLibrary* hsmmml,HalSMInteger* u,HalSMInteger* v);
-void HalSMDouble_clearSelf(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
-HalSMDouble* HalSMDouble_clear(HalSMMemoryManagmentLibrary* hsmmml,HalSMDouble* a);
+void HalSMDouble_AddSelf(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+HalSMDouble* HalSMDouble_Add(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+void HalSMDouble_SubSelf(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+HalSMDouble* HalSMDouble_Sub(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+void HalSMDouble_MulSelf(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+HalSMDouble* HalSMDouble_Mul(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+void HalSMDouble_DivSelf(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+HalSMDouble* HalSMDouble_Div(HalSMMemory* memory,HalSMDouble* a,HalSMDouble* b);
+HalStringFormatChar* HalSMDouble_toString(HalSMMemory* memory,HalSMDouble* a,unsigned char isHex);
+HalStringFormatChar* HalSMDouble_toStringRound(HalSMMemory* memory,HalSMDouble* a,ui64 round);
+double HalSMDouble_ToDouble(HalSMMemory* memory,HalSMDouble* a);
+float HalSMDouble_ToFloat(HalSMMemory* memory,HalSMDouble* a);
+void HalSMDouble_SquareRootSelf(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* q,ui64 crop);
+HalSMDouble* HalSMDouble_SquareRoot(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* q,ui64 crop);
+void HalSMDouble_AbsSelf(HalSMMemory* memory,HalSMDouble* a);
+HalSMDouble* HalSMDouble_Abs(HalSMMemory* memory,HalSMDouble* a);
+void HalSMDouble_Free(HalSMMemory* memory,HalSMDouble* a);
+void HalSMDouble_PowSelf(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* b);
+HalSMDouble* HalSMDouble_Pow(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* b);
+void HalSMDouble_RoundSelf(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* b);
+HalSMDouble* HalSMDouble_Round(HalSMMemory* memory,HalSMDouble* a,HalSMInteger* b);
+void HalSMDouble_CropSelf(HalSMMemory* memory,HalSMDouble* a,ui64 crop);
+HalSMInteger* HalSMDouble_gcdSelf(HalSMMemory* memory,HalSMInteger* u,HalSMInteger* v);
+HalSMInteger* HalSMDouble_gcd(HalSMMemory* memory,HalSMInteger* u,HalSMInteger* v);
+void HalSMDouble_clearSelf(HalSMMemory* memory,HalSMDouble* a);
+HalSMDouble* HalSMDouble_clear(HalSMMemory* memory,HalSMDouble* a);
 
-HalSMFunctionArray* HalSMFunctionArray_init(HalSMMemoryManagmentLibrary* hsmmml,HalSMArray* args,HalSMFunctionArrayType type);
+HalSMFunctionArray* HalSMFunctionArray_init(HalSMMemory* memory,HalSMArray* args,HalSMFunctionArrayType type);
 
 //GOTO
 
@@ -734,12 +787,12 @@ typedef struct HalSMGOTO {
 
 typedef struct HalSMGOTOSector {
     HalStringFormatChar* sector;
-    unsigned long long int index;
+    ui64 index;
     HalSMLocalFunction* lf;
 } HalSMGOTOSector;
 
-HalSMGOTO* HalSMGOTO_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* sector);
-HalSMGOTOSector* HalSMGOTOSector_init(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* sector,unsigned long long int index,HalSMLocalFunction* lf);
+HalSMGOTO* HalSMGOTO_init(HalSMMemory* memory,HalStringFormatChar* sector);
+HalSMGOTOSector* HalSMGOTOSector_init(HalSMMemory* memory,HalStringFormatChar* sector,ui64 index,HalSMLocalFunction* lf);
 
 //HalSM File Pointer
 
@@ -789,7 +842,7 @@ HalSMVariable* HFP_writeUTF16(HalSMCompiler* hsmc,HalSMArray* args,Dict* vars);
 
 typedef struct HalSMByteArray {
     unsigned char* bytes;
-    unsigned long long int size;
+    ui64 size;
 } HalSMByteArray;
 
 HalStringFormatChar* HBA_toString(HalSMCompiler* hsmc,HalSMVariable* v);
@@ -820,13 +873,30 @@ HalSMVariable* HBA_bnot(HalSMCompiler* hsmc,HalSMVariable* a);
 
 //String
 
-unsigned long long int string_len(HalStringFormatChar* s);
-HalSMInteger* string_len_HalSMInteger(HalSMMemoryManagmentLibrary* hsmmml,HalStringFormatChar* s);
+ui64 string_len(HalStringFormatChar* s);
+HalSMInteger* string_len_HalSMInteger(HalSMMemory* memory,HalStringFormatChar* s);
 HalStringFormatChar* string_cat(HalStringFormatChar* s1,HalStringFormatChar* s2);
 HalStringFormatChar* string_cpy(HalStringFormatChar* s1,HalStringFormatChar* s2);
-HalStringFormatChar* stringncpy(HalStringFormatChar* s1,HalStringFormatChar* s2,unsigned long long int n);
+HalStringFormatChar* stringncpy(HalStringFormatChar* s1,HalStringFormatChar* s2,ui64 n);
 
-void* memory_cpy(void* dst,const void* src,unsigned long long int n);
+void* memory_cpy(void* dst,const void* src,ui64 n);
+
+//HalSMMemory
+
+void HalSMMemory_setCell(HalSMMemory* memory,ui64 nc,void* addr);
+void HalSMMemory_setFreeCell(HalSMMemory* memory,void* addr);
+void HalSMMemory_addNewCell(HalSMMemory* memory,void* addr);
+ui64 HalSMMemory_getNCByAddr(HalSMMemory* memory,void* addr);
+void HalSMMemory_freeCell(HalSMMemory* memory,ui64 nc);
+void HalSMMemory_freeSys(HalSMMemory* memory);
+
+void HalSMMemory_init(HalSMMemory* out,HalSMMemoryManagmentLibrary* mml);
+void* HalSMMemory_malloc(HalSMMemory* memory,ui64 size);
+void* HalSMMemory_realloc(HalSMMemory* memory,void* p,ui64 newsize);
+void HalSMMemory_free(HalSMMemory* memory,void* p);
+void* HalSMMemory_calloc(HalSMMemory* memory,ui64 count,ui64 size);
+
+//Defines
 
 #define typevar(x) _Generic((x),HalStringFormatChar*:HalSMVariableType_char,HalSMVoid*:HalSMVariableType_void,HalSMInteger*:HalSMVariableType_int,int**:HalSMVariableType_int_array,\
 HalSMDouble*:HalSMVariableType_double,HalSMArray*:HalSMVariableType_HalSMArray,HalStringFormatChar**:HalSMVariableType_str,HalSMFunctionC*:HalSMVariableType_HalSMFunctionC,\
@@ -840,7 +910,7 @@ HalSMEqual*:HalSMVariableType_HalSMEqual,HalSMNotEqual*:HalSMVariableType_HalSMN
 HalSMLess*:HalSMVariableType_HalSMLess,unsigned char*:HalSMVariableType_HalSMBool,\
 Dict*:HalSMVariableType_HalSMDict,HalSMReturn*:HalSMVariableType_HalSMReturn,HalSMSetVar*:HalSMVariableType_HalSMSetVar,\
 HalSMFunctionCTypeDef*:HalSMVariableType_HalSMFunctionCTypeDef,HalSMFunctionArray*:HalSMVariableType_HalSMFunctionArray,\
-unsigned long long int*:HalSMVariableType_unsigned_int,HalSMRunFuncC*:HalSMVariableType_HalSMRunFuncC,HalSMVariableCustom*:HalSMVariableType_custom,\
+ui64*:HalSMVariableType_unsigned_int,HalSMRunFuncC*:HalSMVariableType_HalSMRunFuncC,HalSMVariableCustom*:HalSMVariableType_custom,\
 HalSMMoreEqual*:HalSMVariableType_HalSMMoreEqual,HalSMLessEqual*:HalSMVariableType_HalSMLessEqual,HalSMShift*:HalSMVariableType_HalSMShift,\
 HalSMPow*:HalSMVariableType_HalSMPow,HalSMModulo*:HalSMVariableType_HalSMModulo,HalSMAND*:HalSMVariableType_HalSMAND,HalSMOR*:HalSMVariableType_HalSMOR,\
 HalSMNegate*:HalSMVariableType_HalSMNegate,HalSMNegativeSign*:HalSMVariableType_HalSMNegativeSign,HalSMGOTO*:HalSMVariableType_HalSMGOTO,HalSMGOTOSector*:HalSMVariableType_HalSMGOTOSector,\
@@ -890,7 +960,7 @@ HalSMBAND*:HalSMVariableType_HalSMBAND,HalSMBOR*:HalSMVariableType_HalSMBOR,HalS
     else if((arg)->type==HalSMVariableType_HalSMSetVar){HalSMSetVar var;}\
     else if((arg)->type==HalSMVariableType_HalSMReturn){HalSMReturn var;}\
     else if((arg)->type==HalSMVariableType_HalSMFunctionArray){HalSMFunctionArray var;}\
-    else if((arg)->type==HalSMVariableType_unsigned_int){unsigned long long int var;}\
+    else if((arg)->type==HalSMVariableType_unsigned_int){ui64 var;}\
     else if((arg)->type==HalSMVariableType_custom){HalSMVariableCustom var;}\
     else if((arg)->type==HalSMVariableType_HalSMMoreEqual){HalSMMoreEqual var;}\
     else if((arg)->type==HalSMVariableType_HalSMLessEqual){HalSMLessEqual var;}\
@@ -935,11 +1005,11 @@ HalSMBAND*:HalSMVariableType_HalSMBAND,HalSMBOR*:HalSMVariableType_HalSMBOR,HalS
 
 #define DictForEach(keyOutDictForEach,valueOutDictForEach,dict) \
     HalSMVariable* keyOutDictForEach=(dict)->elements[0]->key;HalSMVariable* valueOutDictForEach=(dict)->elements[0]->value;\
-    for (unsigned long long int indexDictForEach=0;indexDictForEach<(dict)->size;indexDictForEach++,keyOutDictForEach=(dict)->elements[indexDictForEach]->key,valueOutDictForEach=(dict)->elements[indexDictForEach]->value)
+    for (ui64 indexDictForEach=0;indexDictForEach<(dict)->size;indexDictForEach++,keyOutDictForEach=(dict)->elements[indexDictForEach]->key,valueOutDictForEach=(dict)->elements[indexDictForEach]->value)
 
 #define HalSMArrayForEach(elementHalSMArrayForEach,array) \
     HalSMVariable* elementHalSMArrayForEach=(array)->arr[0];\
-    for (unsigned long long int indexHalSMArrayForEach=0;indexHalSMArrayForEach<(array)->size;indexHalSMArrayForEach++,elementHalSMArrayForEach=(array)->arr[indexHalSMArrayForEach])
+    for (ui64 indexHalSMArrayForEach=0;indexHalSMArrayForEach<(array)->size;indexHalSMArrayForEach++,elementHalSMArrayForEach=(array)->arr[indexHalSMArrayForEach])
 
 #define MathMin(a,b) ((a)<(b)?(a):(b))
 #define MathMax(a,b) ((a)>(b)?(a):(b))
@@ -948,5 +1018,9 @@ HalSMBAND*:HalSMVariableType_HalSMBAND,HalSMBOR*:HalSMVariableType_HalSMBOR,HalS
 #define MathCeilPos(a) ((a)-(int)(a)>0?(int)((a)+1):(int)(a))
 #define MathCeilNeg(a) ((a)-(int)(a)<0?(int)((a)-1):(int)(a))
 #define MathCeil(a) ((a)>0?MathCeilPos((a)):MathCeilNeg((a)))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

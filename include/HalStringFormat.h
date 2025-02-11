@@ -8,6 +8,7 @@ struct HalStringFormatChar {
 } __attribute__((packed,aligned(4)));
 
 typedef struct HalStringFormatChar HalStringFormatChar;
+typedef HalStringFormatChar* HalStringFormatStr;
 //HalUTF8
 
 typedef struct HalUTF8Char {

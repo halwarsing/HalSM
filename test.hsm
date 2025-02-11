@@ -1,0 +1,3 @@
+a=["MENU","TEST","AUDIO"]
+a.remove("MENU")
+print(a)
